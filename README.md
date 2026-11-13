@@ -88,6 +88,18 @@ data=<RC4密文>&rc4_hash__=<签名>&signature=<签名>&_nonce=<12字节base64>
 
 `passToken` 有效期较长，之后可用 `python fetch_bodyfat.py refresh` 免短信续期。
 
+不想等短信/图形验证码时可以用**扫码登录**（推荐）：
+
+```
+python fetch_bodyfat.py login --qr
+```
+
+脚本会请求 `longPolling/loginUrl`，把返回的 `qr` 字段（它本身就是一张 260×260 的
+二维码 PNG 图片）保存到 `data/qr.png` 并等待你扫码；请用「米家」或「小米运动健康」
+App 扫一扫，微信/系统相机会把二维码当成一个图片链接打开。扫码成功后自动换
+`passToken` → `ssecurity` → `serviceToken` 并写入 `data/tokens.json`。
+单独调试可用：`python -m mihealth.auth qr`。
+
 ---
 
 ## 2. 目录结构
@@ -103,6 +115,7 @@ data/
   bodyfat.json     # 全部体脂记录（JSON：meta + latest + records 数组）
   state.json       # 增量游标、上次抓取时间
   captcha.png      # 仅在登录需要图形验证码时生成
+  qr.png           # 扫码登录时保存的二维码（可删）
 work/
   evidence/        # 逆向证据（关键 JS 模块、签名对拍向量、各模块分析报告）
   README.md        # 证据目录说明
@@ -116,8 +129,8 @@ work/
 python fetch_bodyfat.py
 ```
 
-- 没有凭据时会自动进入登录（手机号 + 短信验证码，必要时再输图形验证码），
-  凭据写入 `data/tokens.json`；
+- 没有凭据时会自动进入登录（手机号 + 短信验证码，必要时再输图形验证码；
+  也可先用 `python fetch_bodyfat.py login --qr` 扫码登录），凭据写入 `data/tokens.json`；
 - 有凭据时直接做增量抓取，合并进 `data/bodyfat.json`，并打印最近几条体脂数据。
 
 ### 3.2 手动登录（可指定手机号，便于脚本/远程使用）
@@ -130,6 +143,7 @@ python fetch_bodyfat.py login --phone 138xxxxxxxx
 
 若账号开了二次验证，按提示打开链接确认后执行 `refresh`。
 也支持 `python fetch_bodyfat.py login --phone 138xxxxxxxx --code 123456` 直接提交短信码。
+更省事的是扫码：`python fetch_bodyfat.py login --qr`（见上一节）。
 
 ### 3.3 抓取选项
 

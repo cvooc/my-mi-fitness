@@ -27,6 +27,7 @@ Usage:
     python fetch_bodyfat.py                 # 登录(如需要) + 增量抓取 + 显示最新
     python fetch_bodyfat.py --full          # 全量抓取（首次建议用一次）
     python fetch_bodyfat.py login --phone 13800000000
+    python fetch_bodyfat.py login --qr    # 扫码登录（推荐，无需短信）
     python fetch_bodyfat.py latest -n 5
     python fetch_bodyfat.py export          # 导出 data/bodyfat.json
     python fetch_bodyfat.py refresh         # 用 passToken 免短信续期
@@ -176,6 +177,7 @@ def _ensure_token(args: argparse.Namespace) -> Dict[str, Any]:
         if not sys.stdin.isatty():
             raise SystemExit(
                 "还没有登录凭据。请运行:\n"
+                "  python fetch_bodyfat.py login --qr          (扫码，推荐)\n"
                 "  python fetch_bodyfat.py login --phone <你的小米账号手机号>"
             )
         print("还没有登录凭据，先登录小米账号（首次需要短信验证码）。")
@@ -231,17 +233,25 @@ def _fetch_with_retry(rec: Dict[str, Any], fn, verbose: bool = False):
 # --------------------------------------------------------------------------- #
 def cmd_login(args: argparse.Namespace) -> int:
     _ensure_dirs()
-    phone = args.phone or input("小米账号手机号: ").strip()
-    if args.code:
-        rec = xa.verify_sms_code(
-            phone, args.code, xa.DEFAULT_SID,
-            token_path=TOKENS_PATH, device_path=DEVICE_PATH,
+    if getattr(args, "qr", False):
+        rec = xa.login_with_qr(
+            xa.DEFAULT_SID,
+            token_path=TOKENS_PATH,
+            device_path=DEVICE_PATH,
+            qr_path=Path(args.qr_out) if getattr(args, "qr_out", None) else (DATA_DIR / "qr.png"),
         )
     else:
-        rec = xa.login_with_sms(
-            phone, None, xa.DEFAULT_SID,
-            token_path=TOKENS_PATH, device_path=DEVICE_PATH,
-        )
+        phone = args.phone or input("小米账号手机号: ").strip()
+        if args.code:
+            rec = xa.verify_sms_code(
+                phone, args.code, xa.DEFAULT_SID,
+                token_path=TOKENS_PATH, device_path=DEVICE_PATH,
+            )
+        else:
+            rec = xa.login_with_sms(
+                phone, None, xa.DEFAULT_SID,
+                token_path=TOKENS_PATH, device_path=DEVICE_PATH,
+            )
     print("登录成功，凭据已保存到 %s" % TOKENS_PATH)
     print("  userId  : %s" % rec.get("userId"))
     print("  cUserId : %s" % rec.get("cUserId"))
@@ -527,9 +537,13 @@ def build_parser() -> argparse.ArgumentParser:
     _add_fetch_options(p_fetch)
     p_fetch.set_defaults(func=cmd_sync)
 
-    p_login = sub.add_parser("login", help="小米账号短信登录，保存凭据")
+    p_login = sub.add_parser("login", help="小米账号登录（短信或扫码），保存凭据")
     p_login.add_argument("--phone", default=None)
     p_login.add_argument("--code", default=None, help="短信验证码（省略则交互输入）")
+    p_login.add_argument("--qr", action="store_true",
+                         help="扫码登录（下载官方二维码图片，用米家/小米运动健康 App 扫）")
+    p_login.add_argument("--qr-out", default=None,
+                         help="二维码图片保存路径（默认 data/qr.png）")
     p_login.set_defaults(func=cmd_login)
 
     p_refresh = sub.add_parser("refresh", help="用保存的 passToken 免短信续期")

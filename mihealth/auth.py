@@ -70,7 +70,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import requests
 from cryptography.hazmat.primitives import hashes, serialization
@@ -90,6 +90,7 @@ URL_PHONE_INFO = PASS_BASE + "/phoneInfo"
 URL_TICKET_AUTH = PASS_BASE + "/serviceLoginTicketAuth"
 URL_EUI_CONFIG = ACCOUNT_BASE + "/pass2/config"
 CAPTCHA_URL = PASS_BASE + "/getCode?icodeType=login"
+URL_QR_LOGIN = ACCOUNT_BASE + "/longPolling/loginUrl"
 
 DEFAULT_SID = "miothealth"          # com.xiaomi.fitness.account.SIDs.MIOT_HEALTH
 KNOWN_SIDS = {
@@ -885,6 +886,158 @@ def fetch_captcha(session: Optional[requests.Session] = None,
     }
 
 
+def fetch_qr_login(sid: str = DEFAULT_SID, *,
+                   device_path: Path = DEVICE_PATH,
+                   ua: str = DEFAULT_UA) -> Dict[str, Any]:
+    """Start a passport QR login and download the QR image.
+
+    ``longPolling/loginUrl`` returns a ``qr`` field that is itself the URL of a
+    PNG QR code (not text to be re-encoded).  Scanning with the Mi Home / Mi
+    Health app is therefore the only way to open it: WeChat or a system camera
+    would show the raw URL instead.
+    """
+    identity = load_or_create_device(device_path)
+    session = new_session(identity["deviceId"], identity.get("ua") or ua)
+    resp = session.get(URL_QR_LOGIN, params={"sid": sid}, timeout=REQUEST_TIMEOUT)
+    data = parse_passport_json(resp.text)
+    if not _is_success_code(data.get("code")):
+        raise _server_error(resp, data, "longPolling/loginUrl")
+    qr_url = str(data.get("qr") or "")
+    lp_url = str(data.get("lp") or "")
+    if not qr_url or not lp_url:
+        raise AuthError("QR login response is missing the qr/lp fields",
+                        body=data, http_status=resp.status_code)
+    image = session.get(qr_url, timeout=REQUEST_TIMEOUT)
+    content_type = image.headers.get("Content-Type", "")
+    if image.status_code != 200 or not image.content:
+        raise AuthError(
+            f"could not download the QR image (HTTP {image.status_code})",
+            body={"url": qr_url, "content_type": content_type},
+            http_status=image.status_code,
+        )
+    try:
+        timeout_s = int(data.get("timeout") or 300)
+    except (TypeError, ValueError):
+        timeout_s = 300
+    try:
+        interval_s = float(data.get("timeInterval") or 2.0)
+    except (TypeError, ValueError):
+        interval_s = 2.0
+    return {
+        "session": session,
+        "deviceId": identity["deviceId"],
+        "ua": identity.get("ua") or ua,
+        "sid": sid,
+        "qr_url": qr_url,
+        "lp": lp_url,
+        "login_url": str(data.get("loginUrl") or ""),
+        "png": image.content,
+        "content_type": content_type,
+        "timeout": max(30, timeout_s),
+        "interval": max(0.5, min(10.0, interval_s)),
+        "raw": data,
+    }
+
+
+def save_qr_image(info: Dict[str, Any], path: Optional[Path] = None) -> Path:
+    """Write the QR PNG to ``path`` (default: ``mihealth/qr.png``)."""
+    target = Path(path) if path else (HERE / "qr.png")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(info["png"])
+    return target
+
+
+def poll_qr_login(info: Dict[str, Any], *,
+                  timeout: Optional[float] = None,
+                  interval: Optional[float] = None,
+                  on_wait: Optional[Callable[[int], None]] = None) -> Dict[str, Any]:
+    """Long-poll ``lp`` until the QR code is scanned and passport replies.
+
+    The long poll idles until the scan happens, so read timeouts are normal and
+    simply mean "keep waiting".  Returns the passport JSON containing
+    ``userId``/``passToken``/``ssecurity``/``location``.
+    """
+    session = info["session"]
+    lp_url = str(info["lp"])
+    total = float(timeout if timeout is not None else (info.get("timeout") or 300))
+    step = float(interval if interval is not None else (info.get("interval") or 2.0))
+    deadline = time.time() + max(1.0, total)
+    polls = 0
+    last_error = ""
+    while time.time() < deadline:
+        polls += 1
+        remaining = max(0.5, deadline - time.time())
+        try:
+            resp = session.get(lp_url, timeout=min(REQUEST_TIMEOUT, remaining))
+        except requests.RequestException as exc:
+            last_error = f"{type(exc).__name__}: {exc}"
+            if on_wait:
+                on_wait(polls)
+            time.sleep(step)
+            continue
+        text = (resp.text or "").strip()
+        if resp.status_code == 200 and text:
+            try:
+                data = parse_passport_json(text)
+            except AuthError:
+                data = {}
+            if data:
+                result = str(data.get("result") or "").lower()
+                if _is_success_code(data.get("code")) and (
+                        data.get("userId") or data.get("passToken")
+                        or result in ("", "ok")):
+                    return data
+                raise _server_error(resp, data, "QR login")
+        if on_wait:
+            on_wait(polls)
+        time.sleep(step)
+    detail = f" (last poll error: {last_error})" if last_error else ""
+    raise AuthError(
+        f"QR login timed out after {int(total)}s{detail}; "
+        "please run the command again to get a fresh QR code."
+    )
+
+
+def login_with_qr(sid: str = DEFAULT_SID, *,
+                  token_path: Path = DEFAULT_TOKEN_PATH,
+                  device_path: Path = DEVICE_PATH,
+                  qr_path: Optional[Path] = None,
+                  timeout: Optional[float] = None,
+                  interval: Optional[float] = None,
+                  prompt: bool = True,
+                  ua: str = DEFAULT_UA) -> Dict[str, Any]:
+    """Login by scanning a QR code (no SMS / no captcha).
+
+    The QR PNG is saved to ``qr_path`` (default: ``mihealth/qr.png``) so it can
+    be opened and scanned with the Mi Home or Mi Health app.
+    """
+    info = fetch_qr_login(sid, device_path=device_path, ua=ua)
+    image_path = save_qr_image(info, qr_path)
+    if prompt:
+        print("请用「米家」或「小米运动健康」App 扫一扫下面的二维码（已保存为图片）：")
+        print(f"  {image_path}")
+        print(f"二维码有效期约 {int(info['timeout'])} 秒，等待扫码…")
+    waiter = (lambda polls: print(f"  …等待扫码 ({polls})", flush=True)) if prompt else None
+    payload = poll_qr_login(info, timeout=timeout, interval=interval, on_wait=waiter)
+    user_id = str(payload.get("userId") or "")
+    pass_token = str(payload.get("passToken") or "")
+    if not user_id or not pass_token:
+        raise AuthError("QR login succeeded but userId/passToken were missing",
+                        body={"keys": sorted(payload.keys())})
+    record = _login_with_passtoken_impl(
+        info["session"], user_id, pass_token, sid,
+        fallback=payload,
+        phone=str(payload.get("phone") or ""),
+        device_id=info["deviceId"],
+        ua=info["ua"],
+        user_info=payload,
+    )
+    save_tokens(record, token_path)
+    if prompt:
+        print(f"扫码登录成功，凭据已保存到 {token_path}")
+    return record
+
+
 # --------------------------------------------------------------------------- #
 # CLI
 # --------------------------------------------------------------------------- #
@@ -1023,6 +1176,27 @@ def _cmd_login(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_qr(args: argparse.Namespace) -> int:
+    token_path = Path(args.out) if args.out else DEFAULT_TOKEN_PATH
+    try:
+        record = login_with_qr(
+            args.sid,
+            token_path=token_path,
+            device_path=Path(args.device_file) if args.device_file else DEVICE_PATH,
+            qr_path=Path(args.qr_out) if args.qr_out else (HERE / "qr.png"),
+            timeout=args.timeout,
+        )
+    except AuthError as exc:
+        print(f"QR login failed: {exc}", file=sys.stderr)
+        if exc.body is not None:
+            _print_json(exc.body)
+        return 2
+    print("Login succeeded.")
+    _print_record(record)
+    print(f"\nSaved credentials to: {token_path}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Xiaomi passport SMS login for Mi Health / Mi Fitness.",
@@ -1062,6 +1236,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_login.add_argument("--code", default=None,
                          help="SMS code (skip the interactive prompt)")
     p_login.set_defaults(func=_cmd_login)
+
+    p_qr = sub.add_parser("qr", help="login by scanning a QR code (no SMS)")
+    p_qr.add_argument("--qr-out", default=None,
+                      help="where to save the QR PNG (default: mihealth/qr.png)")
+    p_qr.add_argument("--timeout", type=float, default=None,
+                      help="seconds to wait for the scan (default: server timeout)")
+    p_qr.set_defaults(func=_cmd_qr)
     return parser
 
 

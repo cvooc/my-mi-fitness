@@ -3,7 +3,9 @@
 Reverse-engineered from Mi Health 3.61.0 APK (2026-11-04 build).
 
 Public API:
-    from mihealth.auth import login_with_sms, login_with_passtoken, load_tokens
+    from mihealth.auth import (
+        login_with_sms, login_with_qr, login_with_passtoken, load_tokens,
+    )
     from mihealth.client import MiHealthClient, normalize_pull_record
 
 The body-composition history (体脂数据) is served by the fitness data endpoint:
@@ -17,6 +19,10 @@ The eco proxy (``/app/v1/eco/api_proxy`` + ``eco/scale/record/pull``) is kept as
 fallback for scale accounts / virtual members.
 
 See README.md for the full protocol description.
+
+Login: SMS flow (``login_with_sms``, may need a captcha) or the simpler QR flow
+(``login_with_qr``) that downloads the official 260x260 QR PNG and waits for a
+scan with the Mi Home / Mi Health app.
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"

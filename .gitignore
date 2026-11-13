@@ -2,6 +2,8 @@
 data/tokens.json
 data/device.json
 data/captcha.png
+data/qr.png
+mihealth/qr.png
 data/*.tmp
 mihealth/cookies.json
 mihealth/device.json
