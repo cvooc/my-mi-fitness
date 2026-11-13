@@ -1,0 +1,29 @@
+{
+  "stringifyRequestData": {
+    "data": "{\"eco_api\":\"eco/scale/record/pull\",\"params\":\"{\\\"uid\\\":1987654321,\\\"did\\\":\\\"0\\\",\\\"pageSize\\\":200,\\\"createTime\\\":1731234567890}\"}"
+  },
+  "encrypted": {
+    "data": "Xe9xqretKB0HlSaU8SwKbuKlH5qwrgoMufzZ91GxQt86B0JYcJWSdHB8b8P/u7/fK64HFFK+CMiZy/XhnZFSRc6sOzQWtm7Taa32WpXkiox4Em3JtBnw/EHfHlZI1P46YKFNPYnAUJAavj8KqDRgmevI3rfnwKMAF4cPdIoVYQ==",
+    "rc4_hash__": "24TNXCpvwrhDLR65hUJ5UksQt1QbjALJQfO8yA==",
+    "signature": "BQl+gbH/rc32nwHLBTA7zbUOZEI=",
+    "_nonce": "AAAAAAAAAAAAAAAA"
+  },
+  "decrypted": "hello 世界",
+  "decryptedData": "{\"eco_api\":\"eco/scale/record/pull\",\"params\":\"{\\\"uid\\\":1987654321,\\\"did\\\":\\\"0\\\",\\\"pageSize\\\":200,\\\"createTime\\\":1731234567890}\"}",
+  "snake": {
+    "eco_api": "x",
+    "params_json": "y",
+    "list": [
+      {
+        "a_b": 1
+      }
+    ]
+  },
+  "camel": {
+    "ecoApi": "x",
+    "rc4Hash_": "y"
+  },
+  "form": "data=Xe9xqretKB0HlSaU8SwKbuKlH5qwrgoMufzZ91GxQt86B0JYcJWSdHB8b8P%2Fu7%2FfK64HFFK%2BCMiZy%2FXhnZFSRc6sOzQWtm7Taa32WpXkiox4Em3JtBnw%2FEHfHlZI1P46YKFNPYnAUJAavj8KqDRgmevI3rfnwKMAF4cPdIoVYQ%3D%3D&rc4_hash__=24TNXCpvwrhDLR65hUJ5UksQt1QbjALJQfO8yA%3D%3D&signature=BQl%2BgbH%2Frc32nwHLBTA7zbUOZEI%3D&_nonce=AAAAAAAAAAAAAAAA",
+  "nonce_len": 12,
+  "nonce_tail": 29908926
+}

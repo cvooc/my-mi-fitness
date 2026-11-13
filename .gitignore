@@ -1,0 +1,22 @@
+# ---- 密钥 / 凭据（绝不入库）----
+data/tokens.json
+data/device.json
+data/captcha.png
+data/*.tmp
+mihealth/cookies.json
+mihealth/device.json
+
+# ---- 个人数据（不入库）----
+data/bfp-data.json
+data/bodyfat.json
+data/state.json
+data/compare-report.md
+data/duplicate-days.md
+
+# ---- 大文件 / 输入 APK ----
+*.apk
+work/tmp/
+
+# ---- python ----
+__pycache__/
+*.pyc

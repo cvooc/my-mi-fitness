@@ -1,0 +1,1010 @@
+{
+ "type": "urn:miot-spec-v2:device:scale:0000A07D:xiaomi-ms116:1",
+ "description": "Scale",
+ "services": [
+  {
+   "iid": 1,
+   "type": "urn:miot-spec-v2:service:device-information:00007801:xiaomi-ms116:1",
+   "description": "Device Information",
+   "properties": [
+    {
+     "iid": 1,
+     "type": "urn:miot-spec-v2:property:manufacturer:00000001:xiaomi-ms116:1",
+     "description": "Device Manufacturer",
+     "format": "string",
+     "access": [
+      "read"
+     ]
+    },
+    {
+     "iid": 2,
+     "type": "urn:miot-spec-v2:property:model:00000002:xiaomi-ms116:1",
+     "description": "Device Model",
+     "format": "string",
+     "access": [
+      "read"
+     ]
+    },
+    {
+     "iid": 3,
+     "type": "urn:miot-spec-v2:property:serial-number:00000003:xiaomi-ms116:1",
+     "description": "Device ID",
+     "format": "string",
+     "access": [
+      "read"
+     ],
+     "comment": "设备ID"
+    },
+    {
+     "iid": 4,
+     "type": "urn:miot-spec-v2:property:firmware-revision:00000005:xiaomi-ms116:1",
+     "description": "Current Firmware Version",
+     "format": "string",
+     "access": [
+      "read"
+     ]
+    },
+    {
+     "iid": 5,
+     "type": "urn:miot-spec-v2:property:serial-no:000000FF:xiaomi-ms116:1",
+     "description": "Serial Number",
+     "format": "string",
+     "access": [
+      "read",
+      "notify"
+     ],
+     "comment": "SN码"
+    }
+   ],
+   "comment": "设备信息"
+  },
+  {
+   "iid": 2,
+   "type": "urn:miot-spec-v2:service:scale:0000786B:xiaomi-ms116:1",
+   "description": "Scale",
+   "properties": [
+    {
+     "iid": 1,
+     "type": "urn:miot-spec-v2:property:unit:000001E0:xiaomi-ms116:1",
+     "description": "Unit",
+     "format": "uint8",
+     "access": [],
+     "value-list": [
+      {
+       "value": 0,
+       "description": "Kilogram",
+       "comment": "Kilogram"
+      },
+      {
+       "value": 1,
+       "description": "Half Kilogram",
+       "comment": "Half Kilogram"
+      }
+     ],
+     "source": 4,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "单位设置"
+    },
+    {
+     "iid": 2,
+     "type": "urn:miot-spec-v2:property:heart-rate-detection:000001DF:xiaomi-ms116:1",
+     "description": "Heart Rate Detection",
+     "format": "bool",
+     "access": [],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "心率测量开关"
+    },
+    {
+     "iid": 3,
+     "type": "urn:miot-spec-v2:property:current-time:00000098:xiaomi-ms116:1",
+     "description": "Current Time",
+     "format": "uint32",
+     "access": [],
+     "unit": "seconds",
+     "value-range": [
+      0,
+      4294967295,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "当前时间（unix timestamp）"
+    }
+   ],
+   "comment": "体重/体脂秤"
+  },
+  {
+   "iid": 3,
+   "type": "urn:miot-spec-v2:service:customized-service-for-ble:000078B4:xiaomi-ms116:1",
+   "description": "Customized Service For Ble",
+   "properties": [
+    {
+     "iid": 1,
+     "type": "urn:miot-spec-v2:property:customized-argument-5:00000193:xiaomi-ms116:1",
+     "description": "Customized Argument 5",
+     "format": "uint8",
+     "access": [],
+     "value-range": [
+      0,
+      255,
+      1
+     ],
+     "source": 1,
+     "gatt-access": [],
+     "comment": "自定义参数5(ble专用，事件参数总长度不能超过9字节)"
+    },
+    {
+     "iid": 2,
+     "type": "urn:miot-spec-v2:property:customized-argument-4:00000192:xiaomi-ms116:1",
+     "description": "Customized Argument 4",
+     "format": "uint32",
+     "access": [],
+     "value-range": [
+      0,
+      4294967295,
+      1
+     ],
+     "source": 1,
+     "gatt-access": [],
+     "comment": "自定义参数4(ble专用，事件参数总长度不能超过9字节)"
+    },
+    {
+     "iid": 3,
+     "type": "urn:miot-spec-v2:property:customized-argument-3:00000191:xiaomi-ms116:1",
+     "description": "Customized Argument 3",
+     "format": "uint32",
+     "access": [],
+     "value-range": [
+      0,
+      4294967295,
+      1
+     ],
+     "source": 1,
+     "gatt-access": [],
+     "comment": "自定义参数3(ble专用，事件参数总长度不能超过9字节)"
+    }
+   ],
+   "events": [
+    {
+     "iid": 1022,
+     "type": "urn:miot-spec-v2:event:customized-event-1:00005035:xiaomi-ms116:1",
+     "description": "Customized Event-1",
+     "arguments": [
+      1,
+      2,
+      3
+     ],
+     "comment": "自定义事件1(ble专用，参数长度不能超过9字节)"
+    }
+   ],
+   "comment": "BLE专用自定义服务(ble专用，事件参数总长度不能超过9字节)"
+  },
+  {
+   "iid": 4,
+   "type": "urn:miot-spec-v2:service:battery:00007805:xiaomi-ms116:1",
+   "description": "Battery",
+   "properties": [
+    {
+     "iid": 1,
+     "type": "urn:miot-spec-v2:property:battery-level:00000014:xiaomi-ms116:1",
+     "description": "Battery Level",
+     "format": "uint8",
+     "access": [],
+     "value-list": [
+      {
+       "value": 0,
+       "description": "Fully",
+       "comment": "电量充足"
+      },
+      {
+       "value": 1,
+       "description": "Low",
+       "comment": "电量不足"
+      },
+      {
+       "value": 2,
+       "description": "Exhausted",
+       "comment": "电量耗尽"
+      }
+     ],
+     "source": 4,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "电池电量"
+    },
+    {
+     "iid": 1004,
+     "type": "urn:miot-spec-v2:property:status:00000007:xiaomi-ms116:1",
+     "description": "Status",
+     "format": "uint8",
+     "access": [
+      "notify",
+      "read"
+     ],
+     "value-list": [
+      {
+       "value": 1,
+       "description": "Open",
+       "comment": "Open"
+      },
+      {
+       "value": 2,
+       "description": "Closed",
+       "comment": "Closed"
+      }
+     ],
+     "source": 4,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "工作状态"
+    }
+   ],
+   "events": [
+    {
+     "iid": 1001,
+     "type": "urn:miot-spec-v2:event:low-battery:00005003:xiaomi-ms116:1",
+     "description": "Low Battery",
+     "arguments": [
+      1
+     ],
+     "comment": "电量低"
+    },
+    {
+     "iid": 1035,
+     "type": "urn:miot-spec-v2:event:battery-status-change:00005095:xiaomi-ms116:1",
+     "description": "Battery Status Change",
+     "arguments": [
+      1004
+     ],
+     "comment": "电池状态改变"
+    }
+   ],
+   "comment": "电池"
+  },
+  {
+   "iid": 5,
+   "type": "urn:xiaomi-spec:service:reserve:00007801:xiaomi-ms116:1",
+   "description": "reserve",
+   "comment": "预留"
+  },
+  {
+   "iid": 6,
+   "type": "urn:xiaomi-spec:service:user-management:00007802:xiaomi-ms116:1",
+   "description": "user-management",
+   "properties": [
+    {
+     "iid": 1,
+     "type": "urn:xiaomi-spec:property:miid:00000001:xiaomi-ms116:1",
+     "description": "",
+     "format": "int64",
+     "access": [],
+     "value-range": [
+      0,
+      999999999999999,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "小米ID"
+    },
+    {
+     "iid": 2,
+     "type": "urn:xiaomi-spec:property:user-id:00000002:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint8",
+     "access": [],
+     "value-range": [
+      0,
+      255,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "成员id"
+    },
+    {
+     "iid": 3,
+     "type": "urn:xiaomi-spec:property:is-owner:00000003:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint8",
+     "access": [],
+     "value-range": [
+      0,
+      255,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "设备所有者标识"
+    },
+    {
+     "iid": 4,
+     "type": "urn:xiaomi-spec:property:user-type:00000004:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint8",
+     "access": [],
+     "value-range": [
+      0,
+      255,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "用户类型"
+    },
+    {
+     "iid": 5,
+     "type": "urn:xiaomi-spec:property:user-age:00000005:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint8",
+     "access": [],
+     "value-range": [
+      0,
+      255,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "年龄"
+    },
+    {
+     "iid": 6,
+     "type": "urn:xiaomi-spec:property:sex:00000006:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint8",
+     "access": [],
+     "value-range": [
+      0,
+      255,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "性别"
+    },
+    {
+     "iid": 7,
+     "type": "urn:xiaomi-spec:property:user-height:00000007:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint8",
+     "access": [],
+     "value-range": [
+      0,
+      255,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "身高"
+    },
+    {
+     "iid": 8,
+     "type": "urn:xiaomi-spec:property:user-weight:00000008:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint16",
+     "access": [],
+     "value-range": [
+      0,
+      65535,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "体重"
+    },
+    {
+     "iid": 9,
+     "type": "urn:xiaomi-spec:property:user-bfp:00000009:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint16",
+     "access": [],
+     "value-range": [
+      0,
+      65535,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "体脂率"
+    },
+    {
+     "iid": 10,
+     "type": "urn:xiaomi-spec:property:user-time:0000000a:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint32",
+     "access": [],
+     "value-range": [
+      0,
+      4294967295,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "创建时间"
+    }
+   ],
+   "actions": [
+    {
+     "iid": 1,
+     "type": "urn:xiaomi-spec:action:update-user:00002801:xiaomi-ms116:1",
+     "description": "update-user",
+     "in": [
+      4,
+      5,
+      6
+     ],
+     "out": [],
+     "comment": "新增用户"
+    },
+    {
+     "iid": 2,
+     "type": "urn:xiaomi-spec:action:del-user:00002802:xiaomi-ms116:1",
+     "description": "del-user",
+     "in": [
+      1,
+      2
+     ],
+     "out": [],
+     "comment": "删除用户"
+    },
+    {
+     "iid": 3,
+     "type": "urn:xiaomi-spec:action:update-weight:00002803:xiaomi-ms116:1",
+     "description": "update-weight",
+     "in": [
+      1,
+      2,
+      8
+     ],
+     "out": [],
+     "comment": "更新基准体重"
+    },
+    {
+     "iid": 4,
+     "type": "urn:xiaomi-spec:action:switch-current-user:00002804:xiaomi-ms116:1",
+     "description": "switch-current-user",
+     "in": [
+      1,
+      2
+     ],
+     "out": [],
+     "comment": "切换用户"
+    }
+   ],
+   "comment": "用户管理"
+  },
+  {
+   "iid": 7,
+   "type": "urn:xiaomi-spec:service:reserv-a:00007803:xiaomi-ms116:1",
+   "description": "reserv-a",
+   "comment": "预留"
+  },
+  {
+   "iid": 8,
+   "type": "urn:xiaomi-spec:service:reserve-b:00007804:xiaomi-ms116:1",
+   "description": "reserve-b",
+   "comment": "预留"
+  },
+  {
+   "iid": 9,
+   "type": "urn:xiaomi-spec:service:offline-data:00007805:xiaomi-ms116:1",
+   "description": "offline-data",
+   "properties": [
+    {
+     "iid": 1,
+     "type": "urn:xiaomi-spec:property:offline-data:00000001:xiaomi-ms116:1",
+     "description": "",
+     "format": "string",
+     "access": [],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "离线数据"
+    },
+    {
+     "iid": 2,
+     "type": "urn:xiaomi-spec:property:idx-string:00000002:xiaomi-ms116:1",
+     "description": "",
+     "format": "string",
+     "access": [],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "已上传的离线数据idx列表"
+    },
+    {
+     "iid": 3,
+     "type": "urn:xiaomi-spec:property:data-num:00000003:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint8",
+     "access": [],
+     "value-range": [
+      0,
+      255,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "离线数据条数"
+    }
+   ],
+   "actions": [
+    {
+     "iid": 1,
+     "type": "urn:xiaomi-spec:action:request-offline-data:00002801:xiaomi-ms116:1",
+     "description": "request-offline-data",
+     "in": [
+      3
+     ],
+     "out": [],
+     "comment": "请求离线数据条数"
+    },
+    {
+     "iid": 2,
+     "type": "urn:xiaomi-spec:action:comfirm-offline-data:00002802:xiaomi-ms116:1",
+     "description": "comfirm-offline-data",
+     "in": [],
+     "out": [],
+     "comment": "离线数据条数确认"
+    }
+   ],
+   "comment": "离线数据"
+  },
+  {
+   "iid": 10,
+   "type": "urn:xiaomi-spec:service:online-data:00007806:xiaomi-ms116:1",
+   "description": "online-data",
+   "properties": [
+    {
+     "iid": 1,
+     "type": "urn:xiaomi-spec:property:work-mode:00000001:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint8",
+     "access": [],
+     "value-list": [
+      {
+       "value": 0,
+       "description": "Normal-mode",
+       "comment": "Normal-mode"
+      },
+      {
+       "value": 1,
+       "description": "Baby-mode",
+       "comment": "Baby-mode"
+      },
+      {
+       "value": 2,
+       "description": "Balace-mode",
+       "comment": "Balace-mode"
+      },
+      {
+       "value": 3,
+       "description": "Vistor-mode",
+       "comment": "Vistor-mode"
+      },
+      {
+       "value": 4,
+       "description": "First-mode",
+       "comment": "First-mode"
+      },
+      {
+       "value": 5,
+       "description": "Online-mode",
+       "comment": "Online-mode"
+      },
+      {
+       "value": 6,
+       "description": "NewUser-mode",
+       "comment": "NewUser-mode"
+      }
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "工作模式"
+    },
+    {
+     "iid": 2,
+     "type": "urn:xiaomi-spec:property:work-status:00000002:xiaomi-ms116:1",
+     "description": "work-status",
+     "format": "uint8",
+     "access": [],
+     "value-range": [
+      0,
+      255,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "工作状态"
+    },
+    {
+     "iid": 3,
+     "type": "urn:xiaomi-spec:property:work-data:00000003:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint16",
+     "access": [],
+     "value-range": [
+      0,
+      65535,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "测量数据"
+    },
+    {
+     "iid": 4,
+     "type": "urn:xiaomi-spec:property:measur-result:00000004:xiaomi-ms116:1",
+     "description": "",
+     "format": "string",
+     "access": [],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "称重完成数据"
+    }
+   ],
+   "actions": [
+    {
+     "iid": 1,
+     "type": "urn:xiaomi-spec:action:set-mode:00002801:xiaomi-ms116:1",
+     "description": "set-mode",
+     "in": [
+      1
+     ],
+     "out": [],
+     "comment": "设置工作模式"
+    }
+   ],
+   "events": [
+    {
+     "iid": 1,
+     "type": "urn:xiaomi-spec:event:baby-data-report:00005001:xiaomi-ms116:1",
+     "description": "baby-data-report",
+     "arguments": [
+      2,
+      3
+     ],
+     "comment": "抱婴模式上报"
+    },
+    {
+     "iid": 2,
+     "type": "urn:xiaomi-spec:event:balance-data-report:00005002:xiaomi-ms116:1",
+     "description": "balance-data-report",
+     "arguments": [
+      2,
+      3
+     ],
+     "comment": "平衡模式上报"
+    },
+    {
+     "iid": 3,
+     "type": "urn:xiaomi-spec:event:realtime-data-report:00005003:xiaomi-ms116:1",
+     "description": "realtime-data-report",
+     "arguments": [
+      2,
+      3
+     ],
+     "comment": "实时数据上报"
+    },
+    {
+     "iid": 4,
+     "type": "urn:xiaomi-spec:event:resutl-data-report:00005004:xiaomi-ms116:1",
+     "description": "resutl-data-report",
+     "arguments": [
+      4
+     ],
+     "comment": "结果数据上报"
+    }
+   ],
+   "comment": "在线数据"
+  },
+  {
+   "iid": 11,
+   "type": "urn:xiaomi-spec:service:reserve-c:00007807:xiaomi-ms116:1",
+   "description": "reserve-c",
+   "comment": "保留"
+  },
+  {
+   "iid": 12,
+   "type": "urn:xiaomi-spec:service:reserve-d:00007808:xiaomi-ms116:1",
+   "description": "reserve-d",
+   "comment": "保留"
+  },
+  {
+   "iid": 13,
+   "type": "urn:xiaomi-spec:service:sync-info:00007809:xiaomi-ms116:1",
+   "description": "sync-info",
+   "properties": [
+    {
+     "iid": 1,
+     "type": "urn:xiaomi-spec:property:json-string:00000001:xiaomi-ms116:1",
+     "description": "",
+     "format": "string",
+     "access": [],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "下发字符串"
+    },
+    {
+     "iid": 2,
+     "type": "urn:xiaomi-spec:property:offline-msg-cnt:00000002:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint8",
+     "access": [],
+     "value-range": [
+      0,
+      255,
+      1
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "离线消息条数"
+    },
+    {
+     "iid": 3,
+     "type": "urn:xiaomi-spec:property:sn:00000003:xiaomi-ms116:1",
+     "description": "",
+     "format": "string",
+     "access": [],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "设备序列号"
+    },
+    {
+     "iid": 4,
+     "type": "urn:xiaomi-spec:property:mac:00000004:xiaomi-ms116:1",
+     "description": "",
+     "format": "string",
+     "access": [],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "设备mac"
+    },
+    {
+     "iid": 5,
+     "type": "urn:xiaomi-spec:property:firmwareversion:00000005:xiaomi-ms116:1",
+     "description": "",
+     "format": "string",
+     "access": [],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "设备版本信息"
+    },
+    {
+     "iid": 6,
+     "type": "urn:xiaomi-spec:property:battery-status:00000006:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint8",
+     "access": [],
+     "value-list": [
+      {
+       "value": 0,
+       "description": "Normal",
+       "comment": "Normal"
+      },
+      {
+       "value": 1,
+       "description": "Low",
+       "comment": "Low"
+      },
+      {
+       "value": 2,
+       "description": "Ultra-Low",
+       "comment": "Ultra-Low"
+      }
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "电量"
+    },
+    {
+     "iid": 7,
+     "type": "urn:xiaomi-spec:property:elc-measrue-error:00000007:xiaomi-ms116:1",
+     "description": "",
+     "format": "uint8",
+     "access": [],
+     "value-list": [
+      {
+       "value": 0,
+       "description": "Normal",
+       "comment": "Normal"
+      },
+      {
+       "value": 1,
+       "description": "Arm-Err",
+       "comment": "Arm-Err"
+      },
+      {
+       "value": 2,
+       "description": "Leg-Err",
+       "comment": "Leg-Err"
+      }
+     ],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "快检异常码"
+    }
+   ],
+   "actions": [
+    {
+     "iid": 1,
+     "type": "urn:xiaomi-spec:action:sync:00002801:xiaomi-ms116:1",
+     "description": "sync",
+     "in": [
+      1
+     ],
+     "out": [],
+     "comment": "同步用户信息"
+    }
+   ],
+   "events": [
+    {
+     "iid": 1,
+     "type": "urn:xiaomi-spec:event:battery-report:00005001:xiaomi-ms116:1",
+     "description": "battery-report",
+     "arguments": [
+      6
+     ],
+     "comment": "电量上报"
+    },
+    {
+     "iid": 2,
+     "type": "urn:xiaomi-spec:event:measure-check:00005002:xiaomi-ms116:1",
+     "description": "measure-check",
+     "arguments": [
+      7
+     ],
+     "comment": "快检上报"
+    }
+   ],
+   "comment": "同步信息"
+  },
+  {
+   "iid": 14,
+   "type": "urn:xiaomi-spec:service:share-user-list:0000780a:xiaomi-ms116:1",
+   "description": "share-user-list",
+   "properties": [
+    {
+     "iid": 1,
+     "type": "urn:xiaomi-spec:property:user-list:00000001:xiaomi-ms116:1",
+     "description": "",
+     "format": "string",
+     "access": [],
+     "source": 3,
+     "gatt-access": [
+      "read",
+      "write",
+      "notify"
+     ],
+     "comment": "用户列表"
+    }
+   ],
+   "actions": [
+    {
+     "iid": 1,
+     "type": "urn:xiaomi-spec:action:del-user-list:00002801:xiaomi-ms116:1",
+     "description": "del-user-list",
+     "in": [
+      1
+     ],
+     "out": [],
+     "comment": "取消分享列表"
+    }
+   ],
+   "comment": "分享用户列表"
+  }
+ ]
+}
