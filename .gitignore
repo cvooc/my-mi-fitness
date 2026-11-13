@@ -1,5 +1,6 @@
 # ---- 密钥 / 凭据（绝不入库）----
 data/tokens.json
+data/token.b64
 data/device.json
 data/captcha.png
 data/qr.png
@@ -10,7 +11,6 @@ mihealth/device.json
 
 # ---- 个人数据（不入库）----
 data/bfp-data.json
-data/bodyfat.json
 data/state.json
 data/compare-report.md
 data/duplicate-days.md

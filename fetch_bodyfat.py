@@ -46,7 +46,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
@@ -93,6 +93,12 @@ def _record_key(rec: Dict[str, Any]) -> str:
     if ident in (None, "", 0):
         ident = rec.get("sid")
     return "%s|%s|%s" % (ident, rec.get("time"), rec.get("weight"))
+
+
+def _canonical_records(records: Iterable[Dict[str, Any]]) -> str:
+    """Stable fingerprint of the record set, ignoring snapshot metadata."""
+    rows = sorted(records, key=lambda r: (r.get("time") or 0, _record_key(r)))
+    return json.dumps(rows, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def _fmt_time_text(ms: Any) -> Optional[str]:
@@ -349,6 +355,10 @@ def cmd_sync(args: argparse.Namespace) -> int:
     rec = _ensure_token(args)
     uid = _numeric_uid(rec)
     fetched = _fetch_records(rec, _since_from_args(args), args)
+    if getattr(args, "rebuild", False) and not fetched:
+        raise SystemExit(
+            "云端返回 0 条记录，拒绝用空快照覆盖 %s" % RECORDS_PATH
+        )
 
     if args.raw_out:
         Path(args.raw_out).write_text(
@@ -356,7 +366,8 @@ def cmd_sync(args: argparse.Namespace) -> int:
         )
         print("原始记录 -> %s (%d 条)" % (args.raw_out, len(fetched)))
 
-    stored = _load_records()
+    previous = _load_records()
+    stored = dict(previous)
     if getattr(args, "rebuild", False):
         print("重建本地快照：以本次全量 %d 条为准（会去掉云端已删除的记录）" % len(fetched))
         stored = {}
@@ -369,7 +380,13 @@ def cmd_sync(args: argparse.Namespace) -> int:
             added += 1
         elif old != item:
             stored[key] = item
-    _write_records(stored)
+    changed = _canonical_records(stored.values()) != _canonical_records(previous.values())
+    wrote = False
+    if getattr(args, "if_changed", False) and not changed:
+        print("无变化（不重写快照）")
+    else:
+        _write_records(stored)
+        wrote = True
 
     times = [r.get("time") for r in stored.values() if isinstance(r.get("time"), int)]
     state = _load_state()
@@ -382,8 +399,11 @@ def cmd_sync(args: argparse.Namespace) -> int:
     })
     _save_state(state)
 
-    print("uid=%d 本次拉取=%d 条，新增=%d 条，本地共 %d 条"
-          % (uid, len(fetched), added, len(stored)))
+    print("uid=%d 本次拉取=%d 条，%s本地共 %d 条%s"
+          % (uid, len(fetched),
+             "" if getattr(args, "rebuild", False) else "新增=%d 条，" % added,
+             len(stored),
+             "（快照已更新）" if wrote else "（无变化）"))
     _print_latest(sorted(stored.values(), key=lambda r: r.get("time") or 0), n=args.show)
     return 0
 
@@ -508,6 +528,8 @@ FETCH_OPTIONS = [
                   "choices": ["fitness", "pull", "list", "common"],
                   "help": "fitness=get_fitness_data_by_time（默认，含完整体脂报告）"}),
     (("--model",), {"default": None, "help": "--api common 时的 model 参数"}),
+    (("--if-changed",), {"action": "store_true",
+                         "help": "内容无变化时不重写 JSON（供 GitHub Actions 使用）"}),
     (("--raw-out",), {"default": None, "help": "把本次原始记录另存为 JSON"}),
     (("--show",), {"type": int, "default": 3, "help": "结束时显示最近几条"}),
 ]

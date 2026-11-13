@@ -10,6 +10,9 @@ python fetch_bodyfat.py
 
 只依赖 `requests`（登录额外用到 `cryptography`）。
 
+> 不想自己跑？仓库已带 **GitHub Actions**：每天北京时间 08:10 自动抓取并提交全量
+> `data/bodyfat.json`，其他项目可直接用直链读取（见 §6）。
+
 ---
 
 ## 1. 接口结论
@@ -109,10 +112,15 @@ mihealth/
   auth.py          # 小米 passport 短信登录（含图形验证码）、token 持久化、passToken 续期
   client.py        # RC4 签名客户端 + fitness/eco 接口封装 + 记录字段归一化
 fetch_bodyfat.py   # 命令行入口（默认 = 登录 + 增量抓取）
+tools/
+  export_token.py       # 本地把 data/tokens.json 打包成 GitHub Actions Secret
+  gha_restore_token.py  # CI 内从 Secret 还原 data/tokens.json
+.github/workflows/
+  update-bodyfat.yml    # 每日自动抓取并提交 data/bodyfat.json
 data/
   tokens.json      # 登录凭据（含 serviceToken/ssecurity/passToken，注意保密）
   device.json      # 设备标识（请求签名要用）
-  bodyfat.json     # 全部体脂记录（JSON：meta + latest + records 数组）
+  bodyfat.json     # 全部体脂记录（JSON：meta + latest + records 数组；已入库，可直链读取）
   state.json       # 增量游标、上次抓取时间
   captcha.png      # 仅在登录需要图形验证码时生成
   qr.png           # 扫码登录时保存的二维码（可删）
@@ -181,7 +189,9 @@ python fetch_bodyfat.py export --array                 # 只输出 records 数�
 
 > 与旧的手工 JSON（`data/bfp-data.json`）的字段/数值对比报告见 `data/compare-report.md`（含个人数据，仅本地生成，不入库）。
 
-### 3.5 定时运行
+### 3.5 定时运行（本机）
+
+> 想完全免维护，直接用 §6 的 GitHub Actions（推荐）。
 
 Windows（计划任务，每 6 小时）：
 
@@ -244,5 +254,60 @@ fitness 记录用 `sid`（设备）区分，`account_name` 来自 `eco/scale/acc
   `eco/scale/record/pull`、`eco/scale/record/list` 在当前账号下返回空数组（可能只有虚拟成员/家人数据才走它）。
 - 脚本只读数据，不修改云端记录；请求间隔受分页控制，正常使用不会触发风控。
 - `data/tokens.json` 等价于登录态，请勿提交到公开仓库（已在 `.gitignore` 中排除）。
+- **`data/bodyfat.json` 会随 workflow 提交到公开仓库**（这正是直链能用的原因）。
+  如果你不想公开体重/体脂数据，请把仓库设为私有，或删掉 `.github/workflows/update-bodyfat.yml`。
 - `work/evidence/` 保留少量关键逆向证据，便于日后升级 APK 时快速定位差异；
   完整解包结果可由仓库根目录的 APK 重新生成，不再保留在仓库里（详情见 `work/README.md`）。
+
+## 6. GitHub Actions 每日自动更新
+
+### 6.1 原理
+
+1. 本地把登录态打包成一个 base64 字符串（`data/token.b64`），存到仓库 Secret
+   `MIHEALTH_TOKEN_B64`（**不是**提交到仓库）。
+2. workflow 每天按计划运行：还原 `data/tokens.json` → `--rebuild` 全量拉取 → 写入
+   `data/bodyfat.json` → 内容有变化才提交并推送。
+3. 其他项目直接 GET 一个 JSON 直链即可。
+
+### 6.2 一次性设置
+
+```bash
+# 1) 本地已有 data/tokens.json（扫码或短信登录过）后，导出并做在线校验：
+python tools/export_token.py
+
+# 2) 把它写成仓库 Secret（二选一）
+gh secret set MIHEALTH_TOKEN_B64 --repo cvooc/my-mi-fitness < data/token.b64
+# 或：仓库 Settings → Secrets and variables → Actions → New repository secret
+#     名称 MIHEALTH_TOKEN_B64，值粘贴 data/token.b64 的整行内容
+
+# 3) workflow 与首份 data/bodyfat.json 已在仓库里；只有你本地改过代码时才需要
+git add -A && git commit -m "ci: daily bodyfat update" && git push
+
+# 4) 到仓库 Actions 页手动 Run 一次 "Update body-fat data" 验证
+```
+
+导出脚本只保留必要字段（`serviceToken`/`ssecurity`/`passToken` 等），并会先真实请求
+最近 7 天数据做只读校验；`--no-check` 可离线导出，`--full` 保留全部字段。
+
+### 6.3 直链
+
+```
+https://raw.githubusercontent.com/cvooc/my-mi-fitness/main/data/bodyfat.json
+https://cdn.jsdelivr.net/gh/cvooc/my-mi-fitness@main/data/bodyfat.json
+```
+
+`raw.githubusercontent.com` 更新最及时（通常 1 分钟内）；jsDelivr 有缓存（约 12 小时），
+适合对实时性要求不高的展示。两者内容相同：`schema/updated_at/count/latest/records`。
+
+### 6.4 日常维护
+
+- **token 过期**（日志报 401/403，或 "STS did not return a serviceToken"）：本机重新登录
+  （`python fetch_bodyfat.py login --qr`）→ 重跑 `python tools/export_token.py` →
+  更新 Secret（`gh secret set ... < data/token.b64`）。
+- **数据没更新**：看 Actions 日志里 "无变化（不重写快照）" 是正常的（云端没新数据）；
+  若看到 "云端返回 0 条记录，拒绝用空快照覆盖" 则是凭据失效或接口变更。
+- **Actions 被自动暂停**：仓库 60 天无提交时 schedule 会被暂停，去 Actions 页点
+  "Enable workflow" 即可。
+- **Secret 泄露**：直接删除 Secret 并重新登录导出；`data/token.b64` 已被 `.gitignore` 忽略，
+  注意别手动提交。
+
