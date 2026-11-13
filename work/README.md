@@ -29,6 +29,12 @@
 | `auth-REPORT.md` | 小米 passport 登录逆向（EUI 加密、短信/图形验证码、passToken、serviceToken 获取） |
 | `cloud-REPORT.md` | Mi Health / Mijia 云接口探针结果（`get_fitness_data_by_time` 同款请求体、miio 签名、S800 did、eco 空数据结论） |
 
+## evidence/labels/
+
+| 文件 | 说明 |
+| --- | --- |
+| `health-weight-zh-CN.json` | 从 APK `health` SkyTree bundle 的 `res/localizedString/zh-CN.json` 抽出的体重/体成分文案（`health.weight.somatotype.*`、`bodyShape.*`、`balance.*`、`index.*`、`segmental.*`、`bodyType.desc.*` 等），是 README §4.3 枚举中文名的来源 |
+
 ## 复现签名对拍
 
 ```bash
