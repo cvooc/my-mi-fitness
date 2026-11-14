@@ -1,9 +1,24 @@
-﻿import json, sys, base64, re, time
-sys.path.insert(0, r"D:\workspace\github\mi-fits\work\lead")
-from mihealth_client import (encrypt_parameters, decrypt_response, sign_params,
+"""Self-test: compare the Python signing/crypto port against vectors computed
+by the real APK JavaScript (``js_vectors.json``).
+
+Run from anywhere:
+
+    python work/evidence/js/test_crypto.py
+
+Expected output ends with ``ALL PASS`` (exit code 0).
+"""
+
+import json, sys, base64, re, time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[2]  # work/evidence/js -> repository root
+sys.path.insert(0, str(ROOT))
+
+from mihealth.client import (encrypt_parameters, decrypt_response, sign_params,
                              derive_key, make_nonce, RC4, qs_stringify)
 
-vec = json.load(open(r"D:\workspace\github\mi-fits\work\lead\js_vectors.json", encoding="utf-8-sig"))
+vec = json.loads((HERE / "js_vectors.json").read_text(encoding="utf-8-sig"))
 NONCE = "AAAAAAAAAAAAAAAA"
 SSEC = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="
 fa = {}
@@ -45,4 +60,3 @@ for k, (passed, detail) in fa.items():
     ok = ok and passed
 print("ALL PASS" if ok else "SOME FAILED")
 sys.exit(0 if ok else 1)
-

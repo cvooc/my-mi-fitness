@@ -5,6 +5,7 @@ data/device.json
 data/captcha.png
 data/qr.png
 mihealth/qr.png
+mihealth/captcha.png
 data/*.tmp
 mihealth/cookies.json
 mihealth/device.json

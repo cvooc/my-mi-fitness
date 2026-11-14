@@ -1,7 +1,7 @@
 # work/ · 逆向证据（精简版）
 
 这里只保留定位/验证体脂接口时真正用得上的少量证据。APK 解包、SkyTree bundle
-解压、dex 字符串转储等大体积中间产物已清理，需要时可从仓库根目录的 APK 重新生成。
+解压、dex 字符串转储等大体积中间产物已清理，需要时可用自备的同版本 APK 重新生成（`*.apk` 不入库）。
 
 ## evidence/js/
 
@@ -33,7 +33,7 @@
 
 | 文件 | 说明 |
 | --- | --- |
-| `health-weight-zh-CN.json` | 从 APK `health` SkyTree bundle 的 `res/localizedString/zh-CN.json` 抽出的体重/体成分文案（`health.weight.somatotype.*`、`bodyShape.*`、`balance.*`、`index.*`、`segmental.*`、`bodyType.desc.*` 等），是 README §4.3 枚举中文名的来源 |
+| `health-weight-zh-CN.json` | 从 APK `health` SkyTree bundle 的 `res/localizedString/zh-CN.json` 抽出的体重/体成分文案（`health.weight.somatotype.*`、`bodyShape.*`、`balance.*`、`index.*`、`segmental.*`、`bodyType.desc.*` 等），是 [docs/data-schema.md](../docs/data-schema.md) 枚举字典中文名的来源 |
 
 ## 复现签名对拍
 
