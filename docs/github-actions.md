@@ -46,6 +46,10 @@ https://cdn.jsdelivr.net/gh/cvooc/my-mi-fitness@main/data/bodyfat.json
 - **token 过期**（日志报 401/403，或 "STS did not return a serviceToken"）：本机重新登录
   （`python fetch_bodyfat.py login --qr`）→ 重跑 `python tools/export_token.py` →
   更新 Secret（`gh secret set ... < data/token.b64`）。
+- **日志出现「鉴权被拒…正在用 passToken 续期」**：属自动续期，说明 Secret 里的 `passToken` 仍有效；
+  紧跟的「续期成功，重试本次请求」若之后仍失败，才需要重新导出 Secret。
+- **日志出现 `请求失败（网络）: ... Read timed out`**：接口抖动/弱网。脚本已按 `--retries`（默认 3 次）
+  做指数退避重试，连续失败才以退出码 3 结束；重跑一次 workflow 通常即可恢复，无需重导 Secret。
 - **数据没更新**：看 Actions 日志里 "无变化（不重写快照）" 是正常的（云端没新数据）；
   若看到 "云端返回 0 条记录，拒绝用空快照覆盖" 则是凭据失效或接口变更。
 - **Actions 被自动暂停**：仓库 60 天无提交时 schedule 会被暂停，去 Actions 页点

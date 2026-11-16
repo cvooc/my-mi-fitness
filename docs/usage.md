@@ -34,7 +34,12 @@ python fetch_bodyfat.py --rebuild          # 重建本地快照：以云端为�
 python fetch_bodyfat.py --days 30          # 最近 30 天
 python fetch_bodyfat.py --since 1735660800000   # 指定起始时间（毫秒）
 python fetch_bodyfat.py sync --show 5      # 显式 sync，结束时显示最近 5 条
+python fetch_bodyfat.py --timeout 60 --retries 5   # 弱网/接口抖动时加大超时与重试
 ```
+
+默认每次请求 `timeout=30` 秒、失败重试 3 次（退避 1s→2s），仍失败会打印
+`请求失败（网络）: ...` 并以退出码 3 结束；token 过期时脚本会先用 `passToken` 自动续期一次，
+并打印「鉴权被拒 (HTTP 401)，正在用 passToken 续期…」「续期成功，重试本次请求」，可直接从日志判断是续期还是真失败。
 
 ## 4. 查看 / 导出
 

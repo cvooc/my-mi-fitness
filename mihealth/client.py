@@ -151,7 +151,9 @@ class MiHealthClient:
         locale: str = "zh_CN",
         ua: str = DEFAULT_UA,
         base_url: str = "https://hlth.io.mi.com",
-        timeout: float = 15.0,
+        timeout: float = 30.0,
+        retries: int = 3,
+        backoff: float = 2.0,
         verbose: bool = False,
     ):
         self.service_token = str(service_token)
@@ -161,6 +163,8 @@ class MiHealthClient:
         self.ua = ua
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self.retries = max(1, int(retries))
+        self.backoff = max(1.0, float(backoff))
         self.verbose = verbose
         self.session = requests.Session()
         self.time_diff = 0.0  # server_time - local_time (ms), learned from responses
@@ -200,6 +204,33 @@ class MiHealthClient:
             pass
 
     # -- low level --------------------------------------------------------- #
+    def _request(self, method: str, url: str, **kwargs: Any) -> requests.Response:
+        """Send one request, retrying transient network failures.
+
+        A single 15s timeout used to be enough to kill a whole GitHub Actions run
+        when the TLS handshake to hlth.io.mi.com stalled, so timeouts / resets /
+        TLS errors are retried with exponential backoff before giving up.
+        """
+        attempts = self.retries
+        delay = 1.0
+        last: Optional[Exception] = None
+        for attempt in range(1, attempts + 1):
+            try:
+                return self.session.request(
+                    method, url, timeout=self.timeout, **kwargs
+                )
+            except requests.RequestException as exc:
+                last = exc
+                if attempt >= attempts:
+                    break
+                self._log(
+                    "%s %s failed (%d/%d): %s: %s; retry in %.1fs"
+                    % (method, url, attempt, attempts, type(exc).__name__, exc, delay)
+                )
+                time.sleep(delay)
+                delay *= self.backoff
+        raise HlthNetworkError(method, url, attempts, last)
+
     def post(
         self,
         path: str,
@@ -237,7 +268,9 @@ class MiHealthClient:
             )
 
         self._log("POST", url, "encrypted=", encrypt)
-        resp = self.session.post(url, data=body.encode("utf-8"), headers=headers, timeout=self.timeout)
+        resp = self._request(
+            "POST", url, data=body.encode("utf-8"), headers=headers
+        )
         self._update_time_diff(resp)
         text = resp.text
         if resp.status_code != 200:
@@ -276,7 +309,7 @@ class MiHealthClient:
             )
         else:
             enc = params or {}
-        resp = self.session.get(url, params=enc, headers=headers, timeout=self.timeout)
+        resp = self._request("GET", url, params=enc, headers=headers)
         self._update_time_diff(resp)
         if resp.status_code != 200:
             raise HlthHttpError(resp.status_code, resp.text[:800], url)
@@ -558,6 +591,20 @@ class HlthHttpError(HlthError):
         self.body = body
         self.url = url
         super().__init__("HTTP %s from %s: %s" % (status, url, body))
+
+
+class HlthNetworkError(HlthError):
+    """Network-level failure (timeout / TLS / reset) after every retry."""
+
+    def __init__(self, method: str, url: str, attempts: int, last: Optional[BaseException]):
+        self.method = method
+        self.url = url
+        self.attempts = attempts
+        self.last = last
+        detail = "%s: %s" % (type(last).__name__, last) if last else "unknown error"
+        super().__init__(
+            "%s %s failed after %d attempt(s): %s" % (method, url, attempts, detail)
+        )
 
 
 class HlthDecryptError(HlthError):

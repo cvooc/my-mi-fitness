@@ -52,7 +52,11 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 from mihealth import auth as xa  # noqa: E402
-from mihealth.client import HlthHttpError, MiHealthClient  # noqa: E402
+from mihealth.client import (  # noqa: E402
+    HlthHttpError,
+    HlthNetworkError,
+    MiHealthClient,
+)
 
 DATA_DIR = ROOT / "data"
 TOKENS_PATH = DATA_DIR / "tokens.json"
@@ -197,7 +201,14 @@ def _ensure_token(args: argparse.Namespace) -> Dict[str, Any]:
     return rec
 
 
-def _make_client(rec: Dict[str, Any], verbose: bool = False) -> MiHealthClient:
+def _make_client(rec: Dict[str, Any], verbose: bool = False,
+                 timeout: Optional[float] = None,
+                 retries: Optional[int] = None) -> MiHealthClient:
+    extra: Dict[str, Any] = {}
+    if timeout is not None:
+        extra["timeout"] = timeout
+    if retries is not None:
+        extra["retries"] = retries
     return MiHealthClient(
         service_token=rec["serviceToken"],
         c_user_id=rec.get("cUserId") or rec.get("userId") or "",
@@ -205,7 +216,17 @@ def _make_client(rec: Dict[str, Any], verbose: bool = False) -> MiHealthClient:
         locale=rec.get("locale") or "zh_CN",
         ua=rec.get("ua") or xa.DEFAULT_UA,
         verbose=verbose,
+        **extra,
     )
+
+
+def _net_opts(args: argparse.Namespace) -> Dict[str, Any]:
+    """Network knobs from the CLI, forwarded to _fetch_with_retry."""
+    return {
+        "verbose": getattr(args, "verbose", False),
+        "timeout": getattr(args, "timeout", None),
+        "retries": getattr(args, "retries", None),
+    }
 
 
 def _numeric_uid(rec: Dict[str, Any]) -> int:
@@ -217,20 +238,24 @@ def _numeric_uid(rec: Dict[str, Any]) -> int:
     raise SystemExit("无法从 token 中解析出数字 uid（userId=%r）" % rec.get("userId"))
 
 
-def _fetch_with_retry(rec: Dict[str, Any], fn, verbose: bool = False):
+def _fetch_with_retry(rec: Dict[str, Any], fn, verbose: bool = False,
+                      timeout: Optional[float] = None,
+                      retries: Optional[int] = None):
     """Run fn(client); on 401/403 renew the token once and retry."""
-    client = _make_client(rec, verbose=verbose)
+    client = _make_client(rec, verbose=verbose, timeout=timeout, retries=retries)
     try:
         return fn(client)
     except HlthHttpError as exc:
         if exc.status not in (401, 403):
             raise
-        if verbose:
-            print("[fetch] token rejected (%s), refreshing via passToken..." % exc.status, file=sys.stderr)
+        # 这行必须无条件打印：CI 日志里要看得出「其实是续期过了」。
+        print("[fetch] 鉴权被拒 (HTTP %s)，正在用 passToken 续期…" % exc.status,
+              file=sys.stderr)
         renewed = _token_record(refresh=True)
         if not (renewed.get("serviceToken") and renewed.get("ssecurity")):
             raise SystemExit("凭据已失效且无法自动续期，请重新登录: python fetch_bodyfat.py login")
-        client = _make_client(renewed, verbose=verbose)
+        print("[fetch] 续期成功，重试本次请求", file=sys.stderr)
+        client = _make_client(renewed, verbose=verbose, timeout=timeout, retries=retries)
         return fn(client)
 
 
@@ -283,7 +308,7 @@ def _fetch_records(rec: Dict[str, Any], since_ms: Optional[int],
         rows = _fetch_with_retry(
             rec,
             lambda c: c.get_weight_records(start_time=start_s, end_time=end_s),
-            getattr(args, "verbose", False),
+            **_net_opts(args),
         )
         for row in rows:
             if not row.get("time_text"):
@@ -291,7 +316,7 @@ def _fetch_records(rec: Dict[str, Any], since_ms: Optional[int],
         return rows
 
     accounts = _fetch_with_retry(
-        rec, lambda c: c.get_virtual_account_list(uid), getattr(args, "verbose", False)
+        rec, lambda c: c.get_virtual_account_list(uid), **_net_opts(args)
     )
     labels: Dict[int, Any] = {
         int(acc["accountId"]): acc.get("name")
@@ -311,7 +336,7 @@ def _fetch_records(rec: Dict[str, Any], since_ms: Optional[int],
             rows.extend(_fetch_with_retry(
                 rec,
                 lambda c, aid=account_id: c.list_records(aid, page_size=args.page_size),
-                getattr(args, "verbose", False),
+                **_net_opts(args),
             ))
     else:
         eco_api = "eco/common/scale/pull" if api == "common" else "eco/scale/record/pull"
@@ -325,7 +350,7 @@ def _fetch_records(rec: Dict[str, Any], since_ms: Optional[int],
                 eco_api=eco_api,
                 model=None if api != "common" else (args.model or ""),
             ),
-            getattr(args, "verbose", False),
+            **_net_opts(args),
         )
     for row in rows:
         aid = row.get("accountId")
@@ -413,7 +438,7 @@ def cmd_accounts(args: argparse.Namespace) -> int:
     rec = _ensure_token(args)
     uid = _numeric_uid(rec)
     accounts = _fetch_with_retry(
-        rec, lambda c: c.get_virtual_account_list(uid), getattr(args, "verbose", False)
+        rec, lambda c: c.get_virtual_account_list(uid), **_net_opts(args)
     )
     print("uid=%d, eco 秤账户数=%d" % (uid, len(accounts)))
     for acc in accounts:
@@ -430,7 +455,7 @@ def cmd_raw(args: argparse.Namespace) -> int:
     else:
         params = json.loads(args.params or "{}")
     result = _fetch_with_retry(rec, lambda c: c.eco_api(args.eco_api, params),
-                               getattr(args, "verbose", False))
+                               **_net_opts(args))
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
@@ -535,8 +560,21 @@ FETCH_OPTIONS = [
 ]
 
 
+NET_OPTIONS = [
+    (("--timeout",), {"type": float, "default": 30.0,
+                      "help": "单次请求超时秒数（默认 30）"}),
+    (("--retries",), {"type": int, "default": 3,
+                      "help": "网络超时/连接错误的重试次数（默认 3，指数退避）"}),
+]
+
+
 def _add_fetch_options(parser: argparse.ArgumentParser) -> None:
     for flags, kwargs in FETCH_OPTIONS:
+        parser.add_argument(*flags, **kwargs)
+
+
+def _add_net_options(parser: argparse.ArgumentParser) -> None:
+    for flags, kwargs in NET_OPTIONS:
         parser.add_argument(*flags, **kwargs)
 
 
@@ -547,16 +585,19 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="示例: python fetch_bodyfat.py   |   python fetch_bodyfat.py --full",
     )
     ap.add_argument("-v", "--verbose", action="store_true", help="打印调试信息")
+    _add_net_options(ap)
     # allow `python fetch_bodyfat.py --full` without naming the sync subcommand
     _add_fetch_options(ap)
     sub = ap.add_subparsers(dest="cmd")
 
     p_sync = sub.add_parser("sync", help="登录(如需要) + 增量抓取 + 显示最新")
     _add_fetch_options(p_sync)
+    _add_net_options(p_sync)
     p_sync.set_defaults(func=cmd_sync)
 
     p_fetch = sub.add_parser("fetch", help="同 sync（兼容旧命令）")
     _add_fetch_options(p_fetch)
+    _add_net_options(p_fetch)
     p_fetch.set_defaults(func=cmd_sync)
 
     p_login = sub.add_parser("login", help="小米账号登录（短信或扫码），保存凭据")
@@ -573,6 +614,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_acc = sub.add_parser("accounts", help="列出 eco 秤账户（含虚拟成员）")
     p_acc.add_argument("--phone", default=None, help="缺凭据时可顺带登录")
+    _add_net_options(p_acc)
     p_acc.set_defaults(func=cmd_accounts)
 
     p_raw = sub.add_parser("raw", help="调试：调用任意 eco_api 并打印原始响应")
@@ -580,6 +622,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_raw.add_argument("--params", default="{}")
     p_raw.add_argument("--params-gen", default=None, choices=[None, "uid"])
     p_raw.add_argument("--phone", default=None)
+    _add_net_options(p_raw)
     p_raw.set_defaults(func=cmd_raw)
 
     p_latest = sub.add_parser("latest", help="显示本地最近记录")
@@ -614,6 +657,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     except xa.AuthError as exc:
         print("登录/鉴权失败: %s" % exc, file=sys.stderr)
         return 2
+    except HlthNetworkError as exc:
+        print(
+            "请求失败（网络）: %s（可加大 --timeout / --retries 后重试）" % exc,
+            file=sys.stderr,
+        )
+        return 3
     except HlthHttpError as exc:
         print("请求失败: %s" % exc, file=sys.stderr)
         return 3

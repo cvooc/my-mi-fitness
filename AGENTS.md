@@ -57,7 +57,8 @@ python work/evidence/js/test_crypto.py         # 期望输出 ALL PASS
    并同步 [docs/data-schema.md](docs/data-schema.md) 与 `_record_key` 去重逻辑。
 3. **写入语义**：tmp + `os.replace` 原子写；`--rebuild` 遇云端 0 条**拒绝覆盖**；`--if-changed` 内容未变则不重写
    （CI 依赖此语义避免空提交）；去重键 = `accountId|sid + time + weight`；增量回溯 `OVERLAP_MS = 12h`。
-4. **错误与退出码**：`0` 成功、`2` 用法/交互/凭据错误（argparse、EOF、`AuthError`）、`3` 接口请求失败（`HlthHttpError`）、`130` Ctrl-C。实现见 `fetch_bodyfat.py` 的 `main()`；CI 依赖非 0 判定失败，勿吞异常。
+4. **错误与退出码**：`0` 成功、`2` 用法/交互/凭据错误（argparse、EOF、`AuthError`）、`3` 接口请求失败（`HlthHttpError`，或重试耗尽的网络错误 `HlthNetworkError`）、`130` Ctrl-C。实现见 `fetch_bodyfat.py` 的 `main()`；CI 依赖非 0 判定失败，勿吞异常。
+   网络层默认 `timeout=30`、重试 3 次（指数退避 1s→2s，见 `mihealth/client.py` 的 `_request`），CLI 用 `--timeout/--retries` 覆盖；401/403 的 `passToken` 续期提示**无条件打印**，便于从 CI 日志判断。
 5. **凭据绝不入库**：`data/tokens.json`、`data/device.json`、`data/state.json`、`data/token.b64`、`data/qr.png`、
    `mihealth/qr.png`、`mihealth/captcha.png` 均在 `.gitignore`；日志里不要打印 token/ssecurity。
 6. **个人数据文件**：`data/bfp-data.json`、`data/compare-report.md`、`data/state.json` 属私有中间产物，不入库。
@@ -99,6 +100,7 @@ git diff --stat                                            # 确认无凭据/大
 | 现象 | 原因与处理 |
 | --- | --- |
 | 401/403 | 脚本会用 `passToken` 自动续期**一次**；仍失败则重新登录（`login --qr`） |
+| `Read timed out` / 连接超时 | 已自动重试（默认 3 次，退避 1s→2s）；仍失败则退出码 3，可加大 `--timeout/--retries` 或重跑一次 |
 | `STS did not return a serviceToken` | 登录态失效，重新登录并重新导出 Secret |
 | `云端返回 0 条记录，拒绝用空快照覆盖` | 凭据失效或接口变更；不要删掉该保护 |
 | `--api pull/list/common` 返回空数组 | 生态（eco）兜底接口对当前账号无数据，属预期，不是 bug |
