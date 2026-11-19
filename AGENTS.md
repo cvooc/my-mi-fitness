@@ -89,7 +89,8 @@ git diff --stat                                            # 确认无凭据/大
 ## 7. CI / 提交约定
 
 - **Conventional Commits**：`feat:` / `fix:` / `docs:` / `ci:` / `chore(data):` / `refactor:`。
-- workflow `Update body-fat data`：cron `10 0 * * *`（UTC）= 北京时间 08:10，`TZ=Asia/Shanghai`；
+- workflow `Update body-fat data`：cron `10 0 * * *`（UTC）= 北京时间 08:10，另有补偿 cron `20 18 * * *`
+  （GitHub schedule 延迟 6~7.6h，见 docs/github-actions.md §5），`TZ=Asia/Shanghai`；
   步骤 = 还原 token → `python fetch_bodyfat.py --rebuild --if-changed --show 3` → 有变化才以
   `chore(data): update body-fat snapshot (<时间>)` 提交；`permissions: contents: write`；`concurrency: update-bodyfat`。
 - Secret：`MIHEALTH_TOKEN_B64`（兼容旧的 `MIHEALTH_TOKEN`）；token 失效时按 docs/github-actions.md 重新导出。

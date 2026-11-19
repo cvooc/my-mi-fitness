@@ -56,3 +56,23 @@ https://cdn.jsdelivr.net/gh/cvooc/my-mi-fitness@main/data/bodyfat.json
   "Enable workflow" 即可。
 - **Secret 泄露**：直接删除 Secret 并重新登录导出；`data/token.b64` 已被 `.gitignore` 忽略，
   注意别手动提交。
+
+## 5. 触发时间与延迟
+
+cron 写的是 UTC：`10 0 * * *` = 北京时间 08:10。GitHub 官方说明 schedule 是**尽力而为**的
+（"The schedule event can be delayed during periods of high loads … some queued jobs may be dropped"）。
+
+实测（2026-11-14 ~ 11-18，仓库自己的 5 次 schedule 运行）：
+
+| cron 时刻 (UTC) | 实际创建时间 (UTC) | 延迟 | 北京时间 |
+| --- | --- | --- | --- |
+| 00:10 | 06:10 / 06:16 / 06:17 | 6.0h | 14:10 ~ 14:17 |
+| 00:10 | 07:47 | 7.6h | 15:47 |
+| 00:10 | 07:15 | 7.1h | 15:15 |
+
+- 延迟发生在**调度器投递阶段**（`created_at` 就已经晚了，`started_at - created_at ≈ 0s`），
+  不是 runner 排队；同一时间 `workflow_dispatch` 手动触发是秒级的。
+- 因此 workflow 里额外加了一条 `20 18 * * *`（北京 02:20）的补偿触发：按 6~7.6h 延迟，
+  它会落在北京 08:20~09:56，赶在早间称重之后抓当日数据；主触发保留，GitHub 恢复后会自己回到 08:10。
+- 如果长期不需要这种补偿，删掉 workflow 里第二条 cron 即可；想精确到分钟则改用外部定时器
+  调 `workflow_dispatch`（需要一个带 `workflow`/Actions write 权限的 token）。
